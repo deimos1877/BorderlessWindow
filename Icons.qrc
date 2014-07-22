@@ -1,0 +1,13 @@
+<RCC>
+    <qresource prefix="/SystemMenu">
+        <file>BorderlessWindow.css</file>
+        <file>Icons/Close.png</file>
+        <file>Icons/CloseHover.png</file>
+        <file>Icons/Maximize.png</file>
+        <file>Icons/MaximizeHover.png</file>
+        <file>Icons/Minimize.png</file>
+        <file>Icons/MinimizeHover.png</file>
+        <file>Icons/Restore.png</file>
+        <file>Icons/RestoreHover.png</file>
+    </qresource>
+</RCC>
