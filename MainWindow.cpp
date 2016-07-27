@@ -99,6 +99,11 @@ LRESULT CALLBACK BorderlessWindow::WndProc( HWND hWnd, UINT message, WPARAM wPar
         return DefWindowProc( hWnd, message, wParam, lParam );
       }
     }
+    
+    case WM_COMMAND: {
+        SendMessage(hWnd,WM_SYSCOMMAND,wParam,lParam);
+        return DefWindowProc( hWnd, message, wParam, lParam );
+  } break;
 
     case WM_SETFOCUS: {
       QString str( "Got focus" );
