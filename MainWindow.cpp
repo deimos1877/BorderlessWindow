@@ -12,7 +12,7 @@ HWND winId = 0;
 QMainPanel *BorderlessWindow::mainPanel;
 QApplication *BorderlessWindow::a;
 
-BorderlessWindow::BorderlessWindow( QApplication *app, HBRUSH windowBackground, const int x, const int y, const int width, const int height ) : hWnd(0),
+BorderlessWindow::BorderlessWindow( QApplication *app, HBRUSH windowBackground, const int x, const int y, const int width, const int height ) : hWnd( 0 ),
   hInstance( GetModuleHandle( NULL ) ),
   borderless( false ),
   borderlessResizeable( true ),
@@ -35,15 +35,15 @@ BorderlessWindow::BorderlessWindow( QApplication *app, HBRUSH windowBackground, 
 
   hWnd = CreateWindow( L"WindowClass", L"BorderlessWindow", static_cast<DWORD>( Style::windowed ), x, y, width, height, 0, 0, hInstance, nullptr );
 
-  if ( !hWnd ) throw std::runtime_error( "couldn't create window because of reasons" );
+  if ( !hWnd ) throw std::runtime_error( "Couldn't create window because of reasons" );
 
   SetWindowLongPtr( hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>( this ) );
-
 
   mainPanel = new QMainPanel( hWnd );
   winId = ( HWND )mainPanel->winId();
   
   show();
+
   toggleBorderless();
 
   a = app;
@@ -88,50 +88,75 @@ LRESULT CALLBACK BorderlessWindow::WndProc( HWND hWnd, UINT message, WPARAM wPar
       break;
     }
 
-    // ALT + SPACE or F10 system menu
-    case WM_SYSCOMMAND: {
-      if ( wParam == SC_KEYMENU ) {
-          RECT winrect;
-          GetWindowRect( hWnd, &winrect );
-          TrackPopupMenu( GetSystemMenu( hWnd, false ), TPM_TOPALIGN | TPM_LEFTALIGN, winrect.left + 5, winrect.top + 5, 0, hWnd, NULL);
-          break;
-      } else {
-        return DefWindowProc( hWnd, message, wParam, lParam );
+    // ALT + SPACE
+    case WM_SYSKEYDOWN: {
+      if ( wParam == VK_SPACE) {
+        HMENU hMenu = GetSystemMenu( hWnd, FALSE );
+        if ( hMenu )
+        {
+          MENUITEMINFO mii;
+          mii.cbSize = sizeof( MENUITEMINFO );
+          mii.fMask = MIIM_STATE;
+          mii.fType = 0;
+
+          mii.fState = MF_ENABLED;
+          SetMenuItemInfo( hMenu, SC_RESTORE, FALSE, &mii );
+          SetMenuItemInfo( hMenu, SC_SIZE, FALSE, &mii );
+          SetMenuItemInfo( hMenu, SC_MOVE, FALSE, &mii );
+          SetMenuItemInfo( hMenu, SC_MAXIMIZE, FALSE, &mii );
+          SetMenuItemInfo( hMenu, SC_MINIMIZE, FALSE, &mii );
+
+          mii.fState = MF_GRAYED;
+
+          WINDOWPLACEMENT wp;
+          GetWindowPlacement( hWnd, &wp );
+
+          switch ( wp.showCmd ) {
+            case SW_SHOWMAXIMIZED:
+              SetMenuItemInfo( hMenu, SC_SIZE, FALSE, &mii );
+              SetMenuItemInfo( hMenu, SC_MOVE, FALSE, &mii );
+              SetMenuItemInfo( hMenu, SC_MAXIMIZE, FALSE, &mii );
+              SetMenuDefaultItem( hMenu, SC_CLOSE, FALSE );
+              break;
+            case SW_SHOWMINIMIZED:
+              SetMenuItemInfo( hMenu, SC_MINIMIZE, FALSE, &mii );
+              SetMenuDefaultItem( hMenu, SC_RESTORE, FALSE );
+              break;
+            case SW_SHOWNORMAL:
+              SetMenuItemInfo( hMenu, SC_RESTORE, FALSE, &mii );
+              SetMenuDefaultItem( hMenu, SC_CLOSE, FALSE );
+              break;
+            }
+
+            RECT winrect;
+            GetWindowRect( hWnd, &winrect );
+
+            LPARAM cmd = TrackPopupMenu( hMenu, (TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD ),
+                                        winrect.left, winrect.top, NULL, hWnd, NULL );
+
+            if ( cmd ) PostMessage( hWnd, WM_SYSCOMMAND, cmd, 0 );
+        }
+        return 0;
       }
+      return DefWindowProc( hWnd, message, wParam, lParam );
     }
-    
+
     case WM_COMMAND: {
-        SendMessage(hWnd,WM_SYSCOMMAND,wParam,lParam);
-        return DefWindowProc( hWnd, message, wParam, lParam );
-  } break;
+      SendMessage( hWnd, WM_SYSCOMMAND, wParam, lParam );
+      return DefWindowProc( hWnd, message, wParam, lParam );
+    }
 
     case WM_SETFOCUS: {
-      QString str( "Got focus" );
-      QWidget *widget = QWidget::find( ( WId )HWND( wParam ) );
-      if ( widget )
-        str += QString( " from %1 (%2)" ).arg( widget->objectName() ).arg(widget->metaObject()->className() );
-      str += "\n";
-      OutputDebugStringA( str.toLocal8Bit().data() );
+      SetFocus( winId );
       break;
     }
 
     case WM_NCCALCSIZE: {
       //this kills the window frame and title bar we added with
       //WS_THICKFRAME and WS_CAPTION
-      if (window->borderless) {
+      if ( window->borderless ) {
           return 0;
       }
-      break;
-    }
-
-    case WM_KILLFOCUS: {
-      QString str( "Lost focus" );
-      QWidget *widget = QWidget::find( (WId)HWND( wParam ) );
-      if ( widget )
-        str += QString( " to %1 (%2)" ).arg( widget->objectName() ).arg(widget->metaObject()->className() );
-      str += "\n";
-
-      OutputDebugStringA( str.toLocal8Bit().data() );
       break;
     }
 
@@ -219,7 +244,7 @@ LRESULT CALLBACK BorderlessWindow::WndProc( HWND hWnd, UINT message, WPARAM wPar
         pushButtonMaximize->setStyleSheet( "#pushButtonMaximize {image: url(:/SystemMenu/Icons/Maximize.png);} #pushButtonMaximize:hover { image: url(:/SystemMenu/Icons/MaximizeHover.png); }" );
         mainPanel->setGeometry( 8, 8, winrect.right - 16, winrect.bottom - 16 );
       }
-      break;
+      return DefWindowProc(hWnd, message, wParam, lParam);
     }
 
     case WM_GETMINMAXINFO: {
@@ -319,7 +344,7 @@ void BorderlessWindow::setMaximumSize( const int width, const int height ) {
 }
 
 bool BorderlessWindow::isSetMaximumSize() {
-    return this->maximumSize.required;
+  return this->maximumSize.required;
 }
 
 void BorderlessWindow::removeMaximumSize() {

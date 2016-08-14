@@ -122,12 +122,12 @@ void QMainPanel::pushButtonCloseClicked() {
   switch( message->message ) {
     case WM_SYSKEYDOWN: {
       if ( message->wParam == VK_SPACE ) {
-        RECT winrect;
-        GetWindowRect( windowHandle, &winrect );
-        TrackPopupMenu( GetSystemMenu( windowHandle, false ), TPM_TOPALIGN | TPM_LEFTALIGN, winrect.left + 5, winrect.top + 5, 0, windowHandle, NULL);
-        break;
+        SendMessage( windowHandle, WM_SYSKEYDOWN, VK_SPACE, message->lParam );
+        return true;
       }
+      return DefWindowProc( message->hwnd, message->message, message->wParam, message->lParam );
     }
+
     case WM_KEYDOWN: {
       if ( message->wParam == VK_F5 ||
            message->wParam == VK_F6 ||
